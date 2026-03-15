@@ -1,24 +1,8 @@
 const BASE = 'https://backend.jotish.in/backend_dev'
 
-function pick(obj, keys, fb = '') {
-  for (const k of keys) if (obj?.[k] != null && obj[k] !== '') return obj[k]
-  return fb
-}
-
-function normalize(raw, i) {
-  return {
-    id:         pick(raw, ['id', 'ID', 'emp_id', 'employee_id'], i + 1),
-    name:       pick(raw, ['name', 'Name', 'employee_name', 'full_name'], 'Unknown'),
-    email:      pick(raw, ['email', 'Email', 'mail'], '—'),
-    city:       pick(raw, ['city', 'City', 'location'], 'Unknown'),
-    salary:     Number(pick(raw, ['salary', 'Salary', 'amount'], 0)) || 0,
-    department: pick(raw, ['department', 'Department', 'dept'], 'General'),
-    raw,
-  }
-}
-
 function extractRows(r) {
   if (Array.isArray(r)) return r
+  if (Array.isArray(r?.TABLE_DATA?.data)) return r.TABLE_DATA.data
   for (const k of ['data', 'employees', 'result', 'records']) if (Array.isArray(r?.[k])) return r[k]
   if (r && typeof r === 'object') {
     for (const v of Object.values(r)) {
@@ -27,6 +11,29 @@ function extractRows(r) {
     }
   }
   return []
+}
+
+function normalize(raw, i) {
+  if (Array.isArray(raw)) {
+    return {
+      id:         i + 1,
+      name:       raw[0] || 'Unknown',
+      department: raw[1] || 'General',
+      city:       raw[2] || 'Unknown',
+      email:      `${String(raw[0] || '').toLowerCase().replace(/\s+/g, '.')}@company.com`,
+      salary:     Number(String(raw[5] || '0').replace(/[^0-9]/g, '')) || 0,
+      raw,
+    }
+  }
+  return {
+    id:         raw.id || raw.ID || i + 1,
+    name:       raw.name || raw.Name || 'Unknown',
+    email:      raw.email || raw.Email || '—',
+    city:       raw.city || raw.City || 'Unknown',
+    salary:     Number(raw.salary || raw.Salary || 0) || 0,
+    department: raw.department || raw.Department || 'General',
+    raw,
+  }
 }
 
 export async function fetchStaff() {
